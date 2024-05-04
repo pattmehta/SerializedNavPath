@@ -1,0 +1,131 @@
+import SwiftUI
+import Observation
+
+@Observable
+public class SerializedNavPath {
+    
+    struct NavigationPathRawStringCodable: Codable {
+        let data: [String]
+    }
+    
+    private var path: NavigationPath
+    private let _filenameWithExtension: String
+    private let navPathLib: SerializedNavPathLib
+    
+    private var pathBinding: Binding<NavigationPath> {
+        Binding(
+            get: { self.path },
+            set: { _ in print("pathBinding is readonly") }
+        )
+    }
+    
+    public init(filenameWithExtension: String, createNew: Bool = false) {
+        /// reads navigation-path data from disk and uses this data to setup itself
+        /// or, creates a new instance if there is no data
+        var newNavPathLib = SerializedNavPathLib()
+        if createNew {
+            self.path = NavigationPath()
+        } else {
+            /// `readSerializedData` will update/create the `struct newNavPathLib` with `filenameWithExtension`
+            if let data = newNavPathLib.readSerializedData(filenameWithExtension: filenameWithExtension) {
+                do {
+                    let representation = try JSONDecoder().decode(
+                        NavigationPath.CodableRepresentation.self,
+                        from: data)
+                    self.path = NavigationPath(representation)
+                } catch {
+                    self.path = NavigationPath()
+                }
+            } else {
+                self.path = NavigationPath()
+            }
+        }
+        self._filenameWithExtension = filenameWithExtension
+        self.navPathLib = newNavPathLib
+    }
+    
+    // MARK: Routing Utils
+    public func getNavPathForNavigationStack() -> Binding<NavigationPath> {
+        return pathBinding
+    }
+    
+    public func getCount() -> Int {
+        return path.count
+    }
+    
+    public func append(_ route: Route) {
+        path.append(route)
+        save()
+    }
+    
+    public func removeLast() {
+        if getCount() > 0 {
+            path.removeLast()
+            save()
+        }
+    }
+    
+    public func getRoutes() -> [Route]? {
+        /// Converts **`NavigationPath.codable`** which contains data appended using
+        /// `NavigationPath.append(Route(path: "routeName"))` to **`NavigationPathRawStringCodable`**
+        /// And then, filters the data by a given `keyPath` aka `propertyString`
+        /// Finally, after decoding the filtered data using (custom) type `Route`, returns its collection
+        let propertyString = NSExpression(forKeyPath: \Route.path).keyPath // or simply `path` in this case
+        guard let encodedData = try? JSONEncoder().encode(path.codable) else {
+            return nil
+        }
+        /// Extra steps are performed to map the following string in `NavigationPath.codable`
+        /// ["DataVid.Route","{\"path\":\"path2\"}","DataVid.Route","{\"path\":\"path1\"}"]
+        /// To a custom type `NavigationPathRawStringCodable`
+        /// E.g. NavigationPathRawStringCodable(data: ["DataVid.Route", "{\"path\":\"VIDEOS\"}", "DataVid.Route", "{\"path\":\"DISCOVER\"}"])
+        /// In the above example, the first item in `data` is the one that has been appended most recently onto the `NavigationPath`
+        guard let jsonStringData = "{\"data\":\(String(decoding: encodedData, as: UTF8.self))}".data(using: .utf8),
+              let navPathStringCodable = try? JSONDecoder().decode(NavigationPathRawStringCodable.self, from: jsonStringData) else {
+            return nil
+        }
+        
+        let routes = navPathStringCodable.data
+            .filter { $0.contains(propertyString) }
+            .compactMap { $0.data(using: .utf8) }
+            .compactMap { try? JSONDecoder().decode(Route.self, from: $0) }
+        return routes
+    }
+    
+    // MARK: Disk Utils
+    public func save() {
+        guard let representation = path.codable else { return }
+        do {
+            let data = try JSONEncoder().encode(representation)
+            if !navPathLib.writeSerializedData(data) {
+                print("could not save path")
+            }
+        } catch {
+            print("error encoding")
+        }
+    }
+    
+    public func erase() {
+        navPathLib.eraseSerializedData()
+    }
+}
+
+public class Route: Hashable, Codable {
+    
+    @objc let path: String
+    
+    public init(path: String) {
+        self.path = path
+    }
+    
+    public func getPath() -> String {
+        return path
+    }
+
+    public static func == (lhs: Route, rhs: Route) -> Bool {
+        lhs.path == rhs.path
+    }
+    
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(path)
+    }
+}
