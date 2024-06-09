@@ -50,15 +50,12 @@ struct SerializedNavPathLib {
     
     func writeSerializedData(_ data: Data) -> Bool {
         guard let fileUrl = getFileUrl() else {
+            log("could not find")
             return false
         }
-        do {
-            try data.write(to: fileUrl)
-            log("data written")
-            return true
-        } catch {
-            return false
-        }
+        try! data.write(to: fileUrl)
+        log("data written")
+        return true
     }
     
     func eraseSerializedData() {

@@ -23,8 +23,12 @@ public class SerializedNavPath {
         /// reads navigation-path data from disk and uses this data to setup itself
         /// or, creates a new instance if there is no data
         var newNavPathLib = SerializedNavPathLib()
+        
+        var readError = false
         if createNew {
             self.path = NavigationPath()
+            /// call is made to properly define `_filenameWithExtension`, and we don't need return value
+            newNavPathLib.readSerializedData(filenameWithExtension: filenameWithExtension)
         } else {
             /// `readSerializedData` will update/create the `struct newNavPathLib` with `filenameWithExtension`
             if let data = newNavPathLib.readSerializedData(filenameWithExtension: filenameWithExtension) {
@@ -34,14 +38,19 @@ public class SerializedNavPath {
                         from: data)
                     self.path = NavigationPath(representation)
                 } catch {
+                    readError = true
                     self.path = NavigationPath()
                 }
             } else {
+                readError = true
                 self.path = NavigationPath()
             }
         }
         self._filenameWithExtension = filenameWithExtension
         self.navPathLib = newNavPathLib
+        if createNew || readError {
+            self.erase()
+        }
     }
     
     // MARK: Routing Utils
@@ -49,13 +58,13 @@ public class SerializedNavPath {
         return pathBinding
     }
     
-    public func getCount() -> Int {
-        return path.count
-    }
-    
     public func append(_ route: Route) {
         path.append(route)
         save()
+    }
+    
+    public func getCount() -> Int {
+        return path.count
     }
     
     public func removeLast() {
@@ -66,19 +75,19 @@ public class SerializedNavPath {
     }
     
     public func getRoutes() -> [Route]? {
-        /// Converts **`NavigationPath.codable`** which contains data appended using
-        /// `NavigationPath.append(Route(path: "routeName"))` to **`NavigationPathRawStringCodable`**
-        /// And then, filters the data by a given `keyPath` aka `propertyString`
-        /// Finally, after decoding the filtered data using (custom) type `Route`, returns its collection
+        /// - Converts `NavigationPath.codable` which contains data appended using
+        /// - `NavigationPath.append(Route(path: "routeName"))` to `NavigationPathRawStringCodable`
+        /// - And then, filters the data by a given `keyPath` aka `propertyString`
+        /// - Finally, after decoding the filtered data using (custom) type `Route`, returns its collection
         let propertyString = NSExpression(forKeyPath: \Route.path).keyPath // or simply `path` in this case
         guard let encodedData = try? JSONEncoder().encode(path.codable) else {
             return nil
         }
-        /// Extra steps are performed to map the following string in `NavigationPath.codable`
-        /// ["DataVid.Route","{\"path\":\"path2\"}","DataVid.Route","{\"path\":\"path1\"}"]
-        /// To a custom type `NavigationPathRawStringCodable`
-        /// E.g. NavigationPathRawStringCodable(data: ["DataVid.Route", "{\"path\":\"VIDEOS\"}", "DataVid.Route", "{\"path\":\"DISCOVER\"}"])
-        /// In the above example, the first item in `data` is the one that has been appended most recently onto the `NavigationPath`
+        /// - Extra steps are performed to map the following string in `NavigationPath.codable`
+        /// - E.g. `["DataVid.Route","{\"path\":\"path2\"}","DataVid.Route","{\"path\":\"path1\"}"]`
+        /// - To a custom type `NavigationPathRawStringCodable`
+        /// - E.g. `NavigationPathRawStringCodable(data: ["DataVid.Route", "{\"path\":\"VIDEOS\"}", "DataVid.Route", "{\"path\":\"DISCOVER\"}"])`
+        /// - In the above example, the first item in `data` is the one that has been appended most recently onto the `NavigationPath`
         guard let jsonStringData = "{\"data\":\(String(decoding: encodedData, as: UTF8.self))}".data(using: .utf8),
               let navPathStringCodable = try? JSONDecoder().decode(NavigationPathRawStringCodable.self, from: jsonStringData) else {
             return nil
