@@ -5,6 +5,7 @@ struct SerializedNavPathLib {
     /// Therefore, property setup happens after a successful read
     /// Initial value for the property is nil
     
+    static var debug: Bool = false
     private var _filenameWithExtension: String?
     
     init(filenameWithExtension: String? = nil) {
@@ -73,7 +74,10 @@ struct SerializedNavPathLib {
 
 extension SerializedNavPathLib {
     
-    fileprivate func log(_ message: String) {
+    func log(_ message: String) {
+        guard SerializedNavPathLib.debug else {
+            return
+        }
         if let filenameWithExtension = _filenameWithExtension {
             print("\(message): \(filenameWithExtension)")
         }

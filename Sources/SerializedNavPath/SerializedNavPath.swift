@@ -3,9 +3,20 @@ import Observation
 
 @Observable
 public class SerializedNavPath {
+    /// Util to store `NavigationPath` to disk for persistence between app launches. Initial route itself is not saved.
+    /// Persistence comes into play when a path is appended using `path.append`. For e.g. if a `NavigationStack`
+    /// allows, say, `Login` and `Home` destinations, and it defaults to `Login`, then appending `Home` to path will
+    /// create a persisted representation with just `Home`. This representation is understood by util using `getRoutes`
+    /// and of course, natively by `NavigationPath`, as this util wraps around native representation.
     
     struct NavigationPathRawStringCodable: Codable {
         let data: [String]
+    }
+    
+    public static var debug: Bool = true {
+        didSet {
+            SerializedNavPathLib.debug = debug
+        }
     }
     
     private var path: NavigationPath
@@ -15,7 +26,7 @@ public class SerializedNavPath {
     private var pathBinding: Binding<NavigationPath> {
         Binding(
             get: { self.path },
-            set: { _ in print("pathBinding is readonly") }
+            set: { _ in print(SerializedNavPathConstants.logReadOnly) }
         )
     }
     
@@ -63,10 +74,6 @@ public class SerializedNavPath {
         save()
     }
     
-    public func getCount() -> Int {
-        return path.count
-    }
-    
     public func removeLast() {
         if getCount() > 0 {
             path.removeLast()
@@ -74,7 +81,11 @@ public class SerializedNavPath {
         }
     }
     
-    public func getRoutes() -> [Route]? {
+    private func getCount() -> Int {
+        return path.count
+    }
+    
+    private func getRoutes() -> [Route]? {
         /// - Converts `NavigationPath.codable` which contains data appended using
         /// - `NavigationPath.append(Route(path: "routeName"))` to `NavigationPathRawStringCodable`
         /// - And then, filters the data by a given `keyPath` aka `propertyString`
@@ -100,16 +111,25 @@ public class SerializedNavPath {
         return routes
     }
     
+    // MARK: Routing Utils (Properties)
+    public var count: Int {
+        getCount()
+    }
+    
+    public var routes: [Route] {
+        getRoutes() ?? []
+    }
+    
     // MARK: Disk Utils
     public func save() {
         guard let representation = path.codable else { return }
         do {
             let data = try JSONEncoder().encode(representation)
             if !navPathLib.writeSerializedData(data) {
-                print("could not save path")
+                navPathLib.log(SerializedNavPathConstants.errorSavePath)
             }
         } catch {
-            print("error encoding")
+            navPathLib.log(SerializedNavPathConstants.errorEncoding)
         }
     }
     
