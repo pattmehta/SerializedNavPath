@@ -73,15 +73,19 @@ struct OtherHomeView: View {
     }
 }
 
-struct SerializedNavPathExampleApp: View {
+public struct SerializedNavPathExampleApp: View {
     
     private let navPath = SerializedNavPath(filenameWithExtension: SerializedNavPathExampleAppConstants.mainNavPathFilename)
 
     var title: String {
         navPath.routes.first?.path ?? SerializedNavPathExampleAppConstants.defaultTitle
     }
-    
-    var body: some View {
+
+    public init(debug: Bool = true) {
+        SerializedNavPath.debug = debug
+    }
+
+    public var body: some View {
         /// 1. `getNavPathForNavigationStack`: returns path of type `Binding<NavigationPath>`
         NavigationStack(path: navPath.getNavPathForNavigationStack()) {
             LoginView(navPath).showTitle(title)
@@ -94,9 +98,6 @@ struct SerializedNavPathExampleApp: View {
                         LoginView(navPath).showTitle(title)
                     }
                 }
-        }
-        .onAppear {
-            SerializedNavPath.debug = true
         }
     }
 }

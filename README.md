@@ -2,7 +2,7 @@
 
 Swift package to enable persistence layer over `NavigationPath`. Package also provides a few navigation utils. Package consists of six main things
 1. `SerializedNavPath` type, which is an `Observable` that wraps the built-in `NavigationPath`
-2. Read-only `pathBinding` property which provides `Binding` to the `path` property
+2. Read-only `pathBinding` property which provides `Binding` to the above `path` property
 3. `SerializedNavPath` provides persistence from its initialization stage itself by reading the (saved) serialized data from disk, unless we want to create a new object
     ```Swift
     init(filenameWithExtension: String, createNew: Bool = false)
@@ -55,11 +55,11 @@ NavigationStack(path: navPath.getNavPathForNavigationStack())
 
 #### Debugging
 
-> Debugging can be turned on by setting `SerializedNavPath.debug`. The example app view sets this debug flag in its `onAppear`, and running the example app shows two kinds of logs. The file-io logs show when serialized data is written to the `json` file, or when this file is removed. The other logs are for information only, for e.g. when attempt is made to modify the `pathBinding` property.
+> Debugging can be turned on by setting the `SerializedNavPath.debug` flag. The example app view sets this debug flag in its `init` method. Running the app shows two kinds of logs. The file-io logs show when serialized data is written to the `json` file, or when this file is removed. The other logs are for information only, for e.g. when attempt is made to modify the `pathBinding` property, the log prints *pathBinding is readonly*.
 
 #### Details
 
-In the first example recording, clicking the **Login** button appends "home" `Route` to `NavigationPath`, and calls the save method of `SerializedNavPath`, which in turn calls `navPathLib.writeSerializedData` method, passing it the updated path data. If this step produces error, the `log` method prints *could not save path*, else it prints *data written*, followed by the filename with extension.
+In the first example recording, clicking the **Login** button appends "home" `Route` to `NavigationPath`, and calls the save method of `SerializedNavPath`, which in turn calls `navPathLib.writeSerializedData` method, passing it the updated path data. If this step produces error, the log prints *could not save path*, else it prints *data written*, followed by the filename with extension.
 
 ### Platforms
 
@@ -72,8 +72,7 @@ In the first example recording, clicking the **Login** button appends "home" `Ro
 
 First recording shows navigation b/w views, and write logs (for file `MainNavPath.json`). Most importantly, it shows
 the `navPath.count` and `navPath.routes` properties in the view. At the end it shows that `pathBinding` is read-only,
-and calls `navPath.erase` for demo purposes only. Second recording shows the persistence of navigation path
-between app launches — as a feature of the `SerializedNavPath` package.
+and calls `navPath.erase` for demo purposes only. Second recording shows the persistence of navigation path b/w app launches — as a feature of the `SerializedNavPath` package.
 
 <img src="./readme_img/example_2.gif" width="300" alt="second example" />
 
@@ -83,5 +82,4 @@ between app launches — as a feature of the `SerializedNavPath` package.
 2. This view initializes a `navPath` of type `SerializedNavPath` using a filename constant.
 3. The `title` property retrieves the first route's path from `navPath`, or a default title if no route exists.
 4. View `body` is a `NavigationStack` with conditional navigation destinations based on the route path.
-5. Each destination (`LoginView`, `HomeView`, `OtherHomeView`) receives and stores the `navPath`.
-6. Logs are printed as the `.onAppear` modifier sets the debug flag for `SerializedNavPath`.
+5. Each destination (`LoginView`, `HomeView`, `OtherHomeView`) receives and stores the `navPath` for calling the corresponding methods.
