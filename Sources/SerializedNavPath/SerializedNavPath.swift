@@ -65,6 +65,11 @@ public class SerializedNavPath {
     }
     
     // MARK: Routing Utils
+    public func createNew() {
+        self.erase()
+        self.path = NavigationPath()
+    }
+    
     public func getNavPathForNavigationStack() -> Binding<NavigationPath> {
         return pathBinding
     }

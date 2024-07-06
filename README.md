@@ -17,6 +17,7 @@ Swift package to enable persistence layer over `NavigationPath`. Package also pr
 5. Package provides the following routing utils and properties, which are available outside the package
     ```Swift
     // methods
+    - func createNew()
     - func getNavPathForNavigationStack() -> Binding<NavigationPath>
     - func append(_ route: Route)
     - func removeLast()
@@ -45,13 +46,14 @@ NavigationStack(path: navPath.getNavPathForNavigationStack())
 - **eraseSerializedData**: Another method that removes file using `_filenameWithExtension` property.
 
 *Public*
+- **save**: Saves `json` encoded `NavigationPath` data to disk using `writeSerializedData` method of `navPathLib`.
+- **erase**: Calls `eraseSerializedData` method of `navPathLib`.
+- **createNew**: Erases the serialized data and assigns a new `NavigationPath` object to the `path` property.
 - **getNavPathForNavigationStack**: This method returns the private property `pathBinding`.
 - **append**: This method appends a new element to the `NavigationPath`, and saves the path data to disk.
 - **count**: Computed property that represents the number of elements in the `NavigationPath`.
 - **removeLast**: If `count` is non-zero, this method removes the last element from the `NavigationPath`.
 - **routes**: Computed property obtained by the transformation of `NavigationPath` data to a collection of `Route` type, returns an empty collection if there is no data.
-- **save**: Saves `json` encoded `NavigationPath` data to disk using `writeSerializedData` method of `navPathLib`.
-- **erase**: Calls `eraseSerializedData` method of `navPathLib`.
 
 #### Debugging
 
